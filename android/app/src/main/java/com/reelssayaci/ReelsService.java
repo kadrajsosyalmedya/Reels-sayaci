@@ -1,9 +1,14 @@
 package com.reelssayaci;
 
 import android.accessibilityservice.AccessibilityService;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ServiceInfo;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Handler;
@@ -33,6 +38,8 @@ public class ReelsService extends AccessibilityService {
     /** Son reels sayıldıktan bu kadar sonra gelen kaydırma yeni bir harekettir. */
     private static final long NEXT_GESTURE_MS = 1500;
     private static final int SCAN_NODE_BUDGET = 300;
+    private static final int NOTIFICATION_ID = 1;
+    private static final String CHANNEL_ID = "sayac";
 
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Map<String, ScrollTracker> trackers = new HashMap<>();
@@ -69,6 +76,49 @@ public class ReelsService extends AccessibilityService {
     protected void onServiceConnected() {
         store = new Store(this);
         overlay = new Overlay(this);
+        startKeepAlive();
+    }
+
+    /**
+     * Kalıcı bildirimle ön plan servisine geçer. Xiaomi, Oppo gibi telefonlar aksi halde
+     * uygulama kapatılınca sayacı da öldürüyor. Bildirimde bugünkü sayı da görünür.
+     */
+    private void startKeepAlive() {
+        try {
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Sayaç", NotificationManager.IMPORTANCE_LOW);
+            channel.setShowBadge(false);
+            nm.createNotificationChannel(channel);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification());
+            }
+        } catch (RuntimeException ignored) {
+            // Ön plana geçilemezse sayaç yine çalışır, sadece kapatılmaya daha açıktır.
+        }
+    }
+
+    private void updateNotification() {
+        try {
+            getSystemService(NotificationManager.class).notify(NOTIFICATION_ID, buildNotification());
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    private Notification buildNotification() {
+        int count = store.count();
+        int limit = store.limit();
+        PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class),
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        return new Notification.Builder(this, CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle("Bugün " + count + " / " + limit + " reels")
+                .setContentText(Brain.mood(Brain.health(count, limit)))
+                .setContentIntent(open)
+                .setOngoing(true)
+                .setShowWhen(false)
+                .build();
     }
 
     @Override
@@ -230,6 +280,7 @@ public class ReelsService extends AccessibilityService {
         lastCountAt = now;
         int count = store.increment(app);
         overlay.update(count, store.limit(), true);
+        updateNotification();
     }
 
     private static boolean isHorizontal(AccessibilityEvent event) {
