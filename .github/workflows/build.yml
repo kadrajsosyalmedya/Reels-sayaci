@@ -32,6 +32,8 @@ jobs:
         run: |
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk dist/ReelsSayaci.apk
+          # Bazı tarayıcılar .apk indirmeyi engelliyor; zip içindeki APK engellenmiyor.
+          (cd dist && zip ReelsSayaci-apk.zip ReelsSayaci.apk)
           (cd extension && zip -r ../dist/ReelsSayaci-eklenti.zip . -x '*.DS_Store')
 
       - uses: actions/upload-artifact@v4
@@ -48,9 +50,10 @@ jobs:
           make_latest: true
           files: |
             dist/ReelsSayaci.apk
+            dist/ReelsSayaci-apk.zip
             dist/ReelsSayaci-eklenti.zip
           body: |
-            **Telefon (Android):** `ReelsSayaci.apk` dosyasını indirip kur.
+            **Telefon (Android):** `ReelsSayaci.apk` dosyasını indirip kur. Tarayıcı engellerse `ReelsSayaci-apk.zip` dosyasını indir, Dosyalar uygulamasında zip'i aç ve içindeki APK'ya dokun.
             **Bilgisayar (Chrome / Edge / Brave):** `ReelsSayaci-eklenti.zip` dosyasını indirip klasöre çıkar, `chrome://extensions` sayfasında "Paketlenmemiş öğe yükle" ile seç.
 
             Kurulum adımları: README.

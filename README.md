@@ -22,6 +22,8 @@ yanında bir beyin gösterir. Kaydırdıkça beyin yorulur. **50 reels** dolunca
 
 1. Telefonundan **[ReelsSayaci.apk](https://github.com/kadrajsosyalmedya/Reels-sayaci/releases/latest/download/ReelsSayaci.apk)** dosyasını indir.
    (Ya da [Releases](https://github.com/kadrajsosyalmedya/Reels-sayaci/releases) sayfasındaki en son sürümü kullan.)
+   **"Güvenlik nedeniyle engellendi" mi diyor?** Bunun yerine **[ReelsSayaci-apk.zip](https://github.com/kadrajsosyalmedya/Reels-sayaci/releases/latest/download/ReelsSayaci-apk.zip)** dosyasını indir.
+   **Dosyalar** uygulamasında zip'e dokunup çıkar, sonra içindeki `ReelsSayaci.apk`'ya dokun.
 2. İndirilen dosyaya dokun ve kur. "Bilinmeyen uygulamalar" uyarısı çıkarsa tarayıcına izin ver.
 3. **Reels Sayacı** uygulamasını aç ve **Sayacı aç** düğmesine bas.
 4. Açılan Erişilebilirlik listesinde **Reels Sayacı**'nı bul ve aç.
