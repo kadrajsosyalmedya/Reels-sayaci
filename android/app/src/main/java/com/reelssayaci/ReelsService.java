@@ -28,6 +28,10 @@ public class ReelsService extends AccessibilityService {
     private static final long CHECK_DELAY_MS = 250;
     private static final long SCAN_INTERVAL_MS = 1500;
     private static final long BLOCK_COOLDOWN_MS = 2000;
+    /** Limitteki son reels'e tanınan süre; sonra kaydırma algılanmasa bile kapatılır. */
+    private static final long LAST_REEL_GRACE_MS = 30_000;
+    /** Son reels sayıldıktan bu kadar sonra gelen kaydırma yeni bir harekettir. */
+    private static final long NEXT_GESTURE_MS = 1500;
     private static final int SCAN_NODE_BUDGET = 300;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -43,6 +47,7 @@ public class ReelsService extends AccessibilityService {
     private boolean checkPending;
     private long lastScanAt;
     private long lastBlockAt = -BLOCK_COOLDOWN_MS;
+    private long lastCountAt = -LAST_REEL_GRACE_MS;
 
     private final Runnable checkRunnable = () -> {
         checkPending = false;
@@ -124,9 +129,10 @@ public class ReelsService extends AccessibilityService {
     }
 
     private void setInReels(App app, boolean value) {
-        // Limit dolduysa reels ekranına girilemez. Zaten içerideyse limitteki son reels izlenir,
-        // bir sonrakine kaydırınca onScroll kapatır.
-        if (value && !inReels && store.limitReached()) {
+        // Limit dolduysa reels ekranına girilemez. Limitteki son reels'i izlemek için kısa bir
+        // süre tanınır; bir sonrakine kaydırınca ya da süre bitince kapanır.
+        if (value && store.limitReached()
+                && (!inReels || SystemClock.uptimeMillis() - lastCountAt > LAST_REEL_GRACE_MS)) {
             block(app);
             return;
         }
@@ -211,12 +217,17 @@ public class ReelsService extends AccessibilityService {
             tracker = new ScrollTracker();
             trackers.put(key, tracker);
         }
-        if (!tracker.onScroll(SystemClock.uptimeMillis(), event.getFromIndex(), event.getItemCount())) return;
+        long now = SystemClock.uptimeMillis();
+        boolean newReel = tracker.onScroll(now, event.getFromIndex(), event.getItemCount());
 
         if (store.limitReached()) {
-            block(app);
+            // Uygulama yeniden açılınca akışın sırası değişebilir ve sayaç yeni reels'i kaçırabilir;
+            // limit dolduktan sonra her yeni kaydırma hareketi kapatır.
+            if (newReel || now - lastCountAt > NEXT_GESTURE_MS) block(app);
             return;
         }
+        if (!newReel) return;
+        lastCountAt = now;
         int count = store.increment(app);
         overlay.update(count, store.limit(), true);
     }
