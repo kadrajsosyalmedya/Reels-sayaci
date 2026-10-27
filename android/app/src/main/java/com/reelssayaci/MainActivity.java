@@ -58,6 +58,7 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     }
 
     private void refresh() {
+        BrainWidget.updateAll(this);
         int count = store.count();
         int limit = store.limit();
         int health = Brain.health(count, limit);

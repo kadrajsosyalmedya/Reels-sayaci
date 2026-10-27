@@ -3,4 +3,5 @@
     <string name="app_name">Reels Sayacı</string>
     <string name="service_name">Reels Sayacı</string>
     <string name="service_description">Instagram Reels, YouTube Shorts ve TikTok\'ta kaç video izlediğini sayar. Günlük limit dolunca bu ekranları kapatır. Hiçbir veri telefonundan dışarı çıkmaz.</string>
+    <string name="widget_description">Beyin ve bugün izlediğin reels sayısı</string>
 </resources>

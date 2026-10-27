@@ -18,6 +18,7 @@ import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Toast;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +34,7 @@ public class ReelsService extends AccessibilityService {
     private static final long CHECK_DELAY_MS = 250;
     private static final long SCAN_INTERVAL_MS = 1500;
     private static final long BLOCK_COOLDOWN_MS = 2000;
+    private static final int BACK_ATTEMPTS = 3;
     /** Limitteki son reels'e tanınan süre; sonra kaydırma algılanmasa bile kapatılır. */
     private static final long LAST_REEL_GRACE_MS = 30_000;
     /** Son reels sayıldıktan bu kadar sonra gelen kaydırma yeni bir harekettir. */
@@ -52,6 +54,7 @@ public class ReelsService extends AccessibilityService {
     private App currentApp;
     private boolean inReels;
     private boolean checkPending;
+    private boolean backingOut;
     private long lastScanAt;
     private long lastBlockAt = -BLOCK_COOLDOWN_MS;
     private long lastCountAt = -LAST_REEL_GRACE_MS;
@@ -77,6 +80,7 @@ public class ReelsService extends AccessibilityService {
         store = new Store(this);
         overlay = new Overlay(this);
         startKeepAlive();
+        BrainWidget.updateAll(this);
     }
 
     /**
@@ -205,13 +209,7 @@ public class ReelsService extends AccessibilityService {
     }
 
     private boolean hasReelsView(App app, AccessibilityNodeInfo root) {
-        String prefix = root.getPackageName() + ":id/";
-        for (String id : app.exactIds) {
-            if (visibleById(root, prefix + id)) return true;
-        }
-        for (String id : learnedIds) {
-            if (id.startsWith(prefix) && visibleById(root, id)) return true;
-        }
+        if (hasKnownReelsView(app, root)) return true;
         long now = SystemClock.uptimeMillis();
         if (now - lastScanAt < SCAN_INTERVAL_MS) return false;
         lastScanAt = now;
@@ -219,6 +217,18 @@ public class ReelsService extends AccessibilityService {
         if (found == null) return false;
         learnedIds.add(found);
         return true;
+    }
+
+    /** Taramasız, hızlı kontrol: bilinen ve öğrenilmiş kimliklerle. */
+    private boolean hasKnownReelsView(App app, AccessibilityNodeInfo root) {
+        String prefix = root.getPackageName() + ":id/";
+        for (String id : app.exactIds) {
+            if (visibleById(root, prefix + id)) return true;
+        }
+        for (String id : learnedIds) {
+            if (id.startsWith(prefix) && visibleById(root, id)) return true;
+        }
+        return false;
     }
 
     private static boolean visibleById(AccessibilityNodeInfo root, String id) {
@@ -281,6 +291,7 @@ public class ReelsService extends AccessibilityService {
         int count = store.increment(app);
         overlay.update(count, store.limit(), true);
         updateNotification();
+        BrainWidget.updateAll(this);
     }
 
     private static boolean isHorizontal(AccessibilityEvent event) {
@@ -310,9 +321,39 @@ public class ReelsService extends AccessibilityService {
         inReels = false;
         trackers.clear();
         overlay.hide();
-        if (now - lastBlockAt < BLOCK_COOLDOWN_MS) return;
+        if (backingOut || now - lastBlockAt < BLOCK_COOLDOWN_MS) return;
         lastBlockAt = now;
 
+        if (!app.wholeApp) {
+            // Instagram/YouTube açık kalsın (mesajlar, normal videolar); sadece Reels/Shorts'tan çık.
+            Toast.makeText(this, app.title + " bugünlük kapalı 🧠 Limitin doldu.", Toast.LENGTH_LONG).show();
+            backingOut = true;
+            backOutOfReels(app, 0);
+            return;
+        }
+        leaveToBlockScreen(app);
+    }
+
+    /** Geri tuşuna basar; hâlâ Reels/Shorts ekranındaysa tekrar dener, olmazsa ana ekrana döner. */
+    private void backOutOfReels(App app, int attempt) {
+        if (attempt >= BACK_ATTEMPTS) {
+            backingOut = false;
+            leaveToBlockScreen(app);
+            return;
+        }
+        performGlobalAction(GLOBAL_ACTION_BACK);
+        handler.postDelayed(() -> {
+            AccessibilityNodeInfo root = getRootInActiveWindow();
+            if (root != null && App.fromPackage(root.getPackageName()) == app && hasKnownReelsView(app, root)) {
+                backOutOfReels(app, attempt + 1);
+            } else {
+                backingOut = false;
+                lastBlockAt = SystemClock.uptimeMillis();
+            }
+        }, 700);
+    }
+
+    private void leaveToBlockScreen(App app) {
         performGlobalAction(GLOBAL_ACTION_HOME);
         Intent intent = new Intent(this, BlockActivity.class)
                 .putExtra(BlockActivity.EXTRA_APP, app.title)

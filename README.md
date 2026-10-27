@@ -7,11 +7,12 @@ yanında bir beyin gösterir. Kaydırdıkça beyin yorulur. **50 reels** dolunca
 
 - **Sayaç + beyin:** Reels/Shorts/TikTok açıkken ekranın köşesinde `23 / 50` yazar, yanında beyin durur.
   Beyin sağlığı %100'den başlar, her reels ile düşer, 50'de %0 olur.
-- **50'den sonra kapanır:** 50. reels'i izleyebilirsin. Bir sonrakine kaydırınca uygulama ana ekrana döner
-  ve "Bugünlük bu kadar!" ekranı açılır.
-  - Instagram'da sadece **Reels** kapanır. Mesajlar ve ana akış açık kalır.
-  - YouTube'da sadece **Shorts** kapanır. Normal videolar açık kalır.
-  - **TikTok** tamamen kapanır.
+- **50'den sonra kapanır:** 50. reels'i izleyebilirsin. Bir sonrakine kaydırınca kapanır.
+  - Instagram'da sadece **Reels** kapanır: ana sayfaya döner, mesajlaşmaya devam edebilirsin.
+  - YouTube'da sadece **Shorts** kapanır: ana sayfaya döner, normal videolar açık kalır.
+  - **TikTok** tamamen kapanır ve "Bugünlük bu kadar!" ekranı açılır.
+- **Ana ekran aracı (widget):** Ana ekrana beyin ve bugünkü sayıyı koyabilirsin. Ana ekranda boş bir yere
+  basılı tut → **Araç ekle** → **Reels Sayacı**.
 - **Hile yok:** Limit dolunca o gün limiti artıramazsın, sadece azaltabilirsin.
 - **Her gece 00:00'da** sayaç sıfırlanır.
 - **Gizlilik:** Uygulamanın internet izni yok. Hiçbir veri telefonundan dışarı çıkmaz.
@@ -56,7 +57,7 @@ Bunun yerine **Ayarlar → Ekran Süresi → Uygulama Sınırları**'ndan Instag
 **Android:** Uygulama bir Erişilebilirlik servisi kullanıyor. Instagram, YouTube ya da TikTok açıkken ekranın
 reels/shorts ekranı olup olmadığına bakar (`clips_viewer…`, `reel_recycler…` gibi görünüm kimlikleriyle).
 Tam ekran video akışında her yeni videoya geçişi bir kez sayar. Geri kaydırıp eski videoya dönmek sayılmaz.
-Yarım bırakılan kaydırma da sayılmaz. Limit dolunca ana ekrana döner ve engel ekranını açar.
+Yarım bırakılan kaydırma da sayılmaz. Limit dolunca Instagram ve YouTube'da geri tuşuyla Reels/Shorts'tan çıkar, TikTok'u ise kapatıp engel ekranını açar.
 
 **Eklenti:** Instagram ve YouTube'da adres çubuğundaki reels/shorts kimliği değiştikçe sayar. TikTok'ta ise
 ekranda oynayan video değiştikçe sayar.
