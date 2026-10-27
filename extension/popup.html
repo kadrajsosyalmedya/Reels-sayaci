@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>Reels Sayacı</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>Reels Sayacı</h1>
+  <p class="sub">Doomscroll'a dur de 🧠</p>
+
+  <div id="brain" class="brain"></div>
+  <div id="health" class="health"></div>
+  <div id="mood" class="mood"></div>
+
+  <section class="card">
+    <div class="label">Bugün izlenen reels</div>
+    <div id="count" class="count"></div>
+    <div id="remaining" class="remaining"></div>
+    <div id="breakdown" class="muted"></div>
+  </section>
+
+  <section class="card">
+    <div class="label">Günlük limit</div>
+    <div class="limit">
+      <button id="minus" type="button" aria-label="Limiti azalt">−</button>
+      <span id="limit"></span>
+      <button id="plus" type="button" aria-label="Limiti artır">+</button>
+    </div>
+    <div id="message" class="message" role="status"></div>
+    <div class="muted small">Limit dolunca o gün artırılamaz. Sayaç her gece 00:00'da sıfırlanır.</div>
+  </section>
+
+  <script src="brain.js"></script>
+  <script src="store.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

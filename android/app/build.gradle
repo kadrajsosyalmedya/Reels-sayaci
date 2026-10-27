@@ -1,0 +1,53 @@
+plugins {
+    id 'com.android.application'
+}
+
+// CI her derlemede sürümü bir artırır, böylece yeni APK eskisinin üstüne kurulur.
+def buildNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
+android {
+    namespace 'com.reelssayaci'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.reelssayaci'
+        minSdk 26
+        targetSdk 35
+        versionCode buildNumber
+        versionName "1.0.${buildNumber}"
+    }
+
+    // Anahtar depoda duruyor: her derleme aynı imzayı taşır ve güncelleme sorunsuz kurulur.
+    signingConfigs {
+        shared {
+            storeFile file('reels-sayaci.keystore')
+            storePassword 'android'
+            keyAlias 'reelssayaci'
+            keyPassword 'android'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.shared
+        }
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shared
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.2'
+}
