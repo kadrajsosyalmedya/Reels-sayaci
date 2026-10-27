@@ -28,6 +28,8 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     private TextView limitText;
     private LinearLayout serviceOff;
     private TextView serviceOn;
+    private LinearLayout serviceStopped;
+    private final android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,12 +46,15 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
         super.onResume();
         store.prefs().registerOnSharedPreferenceChangeListener(this);
         refresh();
+        // Uygulama yeni açıldıysa sistem servisi biraz sonra bağlar; durumu tekrar kontrol et.
+        handler.postDelayed(this::refresh, 1500);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         store.prefs().unregisterOnSharedPreferenceChangeListener(this);
+        handler.removeCallbacksAndMessages(null);
     }
 
     @Override
@@ -78,8 +83,10 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
         limitText.setText(String.valueOf(limit));
 
         boolean enabled = ReelsService.isEnabled(this);
+        boolean running = enabled && ReelsService.running;
         serviceOff.setVisibility(enabled ? View.GONE : View.VISIBLE);
-        serviceOn.setVisibility(enabled ? View.VISIBLE : View.GONE);
+        serviceStopped.setVisibility(enabled && !running ? View.VISIBLE : View.GONE);
+        serviceOn.setVisibility(running ? View.VISIBLE : View.GONE);
     }
 
     private View build() {
@@ -140,6 +147,20 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
                 Uri.fromParts("package", getPackageName(), null))));
         serviceOff.addView(appInfo, fullWidth());
 
+        // Ayar açık ama telefon (çoğunlukla Xiaomi "hepsini temizle") sayacı öldürmüş.
+        serviceStopped = card(col);
+        serviceStopped.addView(Ui.text(this, "⚠️ Sayaç durmuş", 18, 0xFFFACC15, true));
+        TextView stoppedInfo = Ui.text(this,
+                "Telefon sayacı kapatmış (genelde \"hepsini temizle\" yüzünden). Düzeltmek için aşağıdaki düğmeye bas, "
+                        + "Reels Sayacı'nı kapatıp tekrar aç.", 14, Ui.TEXT, false);
+        stoppedInfo.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 12));
+        serviceStopped.addView(stoppedInfo);
+        Button restart = Ui.button(this, "Sayacı yeniden başlat", Ui.ACCENT, 0xFF1B1526);
+        restart.setOnClickListener(v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+        serviceStopped.addView(restart, fullWidth());
+
+        if (isXiaomi()) addXiaomiCard(col);
+
         serviceOn = Ui.text(this, "✅ Sayaç açık: Reels, Shorts ve TikTok takip ediliyor", 14, 0xFF4ADE80, true);
         LinearLayout.LayoutParams onLp = fullWidth();
         onLp.topMargin = Ui.dp(this, 16);
@@ -170,6 +191,36 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
         limitCard.addView(limitInfo);
 
         return scroll;
+    }
+
+    private static boolean isXiaomi() {
+        String m = Build.MANUFACTURER.toLowerCase(java.util.Locale.ROOT);
+        return m.contains("xiaomi") || m.contains("redmi") || m.contains("poco");
+    }
+
+    /** Xiaomi "hepsini temizle" ile kilitli olmayan ve otomatik başlatması kapalı uygulamaları öldürür. */
+    private void addXiaomiCard(LinearLayout col) {
+        LinearLayout card = card(col);
+        card.addView(Ui.text(this, "📌 Xiaomi için önemli", 16, Ui.ACCENT, true));
+        TextView info = Ui.text(this,
+                "\"Hepsini temizle\" sayacı öldürmesin diye:\n"
+                        + "1. Son uygulamalar ekranında Reels Sayacı'nın kartını aşağı çek ya da basılı tut, 🔒 kilit simgesine bas.\n"
+                        + "2. Aşağıdaki düğmeyle Reels Sayacı için Otomatik başlatma'yı aç.",
+                14, Ui.TEXT, false);
+        info.setGravity(Gravity.START);
+        info.setPadding(0, Ui.dp(this, 6), 0, Ui.dp(this, 12));
+        card.addView(info);
+        Button autostart = Ui.button(this, "Otomatik başlatmayı aç", 0xFF2C2442, Ui.TEXT);
+        autostart.setOnClickListener(v -> {
+            try {
+                startActivity(new Intent().setClassName("com.miui.securitycenter",
+                        "com.miui.permcenter.autostart.AutoStartManagementActivity"));
+            } catch (RuntimeException e) {
+                startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", getPackageName(), null)));
+            }
+        });
+        card.addView(autostart, fullWidth());
     }
 
     private LinearLayout card(LinearLayout parent) {

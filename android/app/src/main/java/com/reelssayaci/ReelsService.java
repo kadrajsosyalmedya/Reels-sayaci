@@ -64,6 +64,9 @@ public class ReelsService extends AccessibilityService {
         checkScreen();
     };
 
+    /** Servis bu süreçte gerçekten çalışıyor mu? Ayar açık görünse de Xiaomi süreci öldürebiliyor. */
+    static volatile boolean running;
+
     public static boolean isEnabled(Context context) {
         String enabled = Settings.Secure.getString(context.getContentResolver(),
                 Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
@@ -77,6 +80,7 @@ public class ReelsService extends AccessibilityService {
 
     @Override
     protected void onServiceConnected() {
+        running = true;
         store = new Store(this);
         overlay = new Overlay(this);
         startKeepAlive();
@@ -155,6 +159,7 @@ public class ReelsService extends AccessibilityService {
 
     @Override
     public boolean onUnbind(Intent intent) {
+        running = false;
         handler.removeCallbacksAndMessages(null);
         if (overlay != null) overlay.hide();
         return super.onUnbind(intent);
