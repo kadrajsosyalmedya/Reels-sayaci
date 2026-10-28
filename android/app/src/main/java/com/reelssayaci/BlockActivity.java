@@ -7,6 +7,7 @@ import android.view.Gravity;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -74,6 +75,21 @@ public class BlockActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         okLp.topMargin = Ui.dp(this, 24);
         col.addView(ok, okLp);
+
+        if (store.passesLeft() > 0) {
+            Button pass = Ui.button(this, "⏱ Önemli: 2 dakika izin al (" + store.passesLeft() + " hak)",
+                    0xFF2C2442, Ui.TEXT);
+            pass.setOnClickListener(v -> {
+                if (store.usePass()) {
+                    Toast.makeText(this, "2 dakika iznin başladı. Uygulamaya geri dönebilirsin.", Toast.LENGTH_LONG).show();
+                }
+                finish();
+            });
+            LinearLayout.LayoutParams passLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            passLp.topMargin = Ui.dp(this, 10);
+            col.addView(pass, passLp);
+        }
 
         TextView reset = Ui.text(this, "Sayaç gece 00:00'da sıfırlanır.", 12, Ui.MUTED, false);
         reset.setPadding(0, Ui.dp(this, 12), 0, 0);

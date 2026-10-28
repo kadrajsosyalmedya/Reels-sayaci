@@ -32,6 +32,10 @@
             android:taskAffinity="com.reelssayaci.block" />
 
         <receiver
+            android:name=".PassReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".BrainWidget"
             android:exported="false"
             android:label="@string/app_name">

@@ -26,9 +26,9 @@ final class Overlay {
         this.wm = (WindowManager) service.getSystemService(AccessibilityService.WINDOW_SERVICE);
     }
 
-    void show(int count, int limit) {
+    void show(int count, int limit, long passMs) {
         if (root == null) build();
-        update(count, limit, false);
+        update(count, limit, passMs, false);
         if (shown) return;
         try {
             wm.addView(root, params());
@@ -47,13 +47,18 @@ final class Overlay {
         }
     }
 
-    void update(int count, int limit, boolean pulse) {
+    void update(int count, int limit, long passMs, boolean pulse) {
         if (root == null) return;
         int health = Brain.health(count, limit);
         brain.setHealth(health);
         countText.setText(count + " / " + limit);
-        healthText.setText(count >= limit ? "Son reels!" : "Beyin %" + health);
-        healthText.setTextColor(Brain.statusColor(health));
+        if (passMs > 0) {
+            healthText.setText("⏱ İzin " + Store.formatRemaining(passMs));
+            healthText.setTextColor(0xFFFACC15);
+        } else {
+            healthText.setText(count >= limit ? "Son reels!" : "Beyin %" + health);
+            healthText.setTextColor(Brain.statusColor(health));
+        }
         if (pulse) {
             brain.animate().cancel();
             brain.setScaleX(1.3f);

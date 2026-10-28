@@ -13,6 +13,8 @@ yanında bir beyin gösterir. Kaydırdıkça beyin yorulur. **50 reels** dolunca
   - **TikTok** tamamen kapanır ve "Bugünlük bu kadar!" ekranı açılır.
 - **Ana ekran aracı (widget):** Ana ekrana beyin ve bugünkü sayıyı koyabilirsin. Ana ekranda boş bir yere
   basılı tut → **Araç ekle** → **Reels Sayacı**.
+- **Önemli bir şey mi var?** Limit dolunca günde **2 kez, 2'şer dakika izin** alabilirsin: bildirimdeki
+  **⏱ 2 dk izin al** düğmesinden, uygulamadan ya da engel ekranından. Süre bitince Reels yine kapanır.
 - **Hile yok:** Limit dolunca o gün limiti artıramazsın, sadece azaltabilirsin.
 - **Her gece 00:00'da** sayaç sıfırlanır.
 - **Gizlilik:** Uygulamanın internet izni yok. Hiçbir veri telefonundan dışarı çıkmaz.

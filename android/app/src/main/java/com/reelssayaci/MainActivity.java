@@ -24,6 +24,10 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
     private TextView moodText;
     private TextView countText;
     private TextView remainingText;
+    private LinearLayout passCard;
+    private TextView passText;
+    private Button passButton;
+    private final Runnable passTick = this::refresh;
     private TextView breakdownText;
     private TextView limitText;
     private LinearLayout serviceOff;
@@ -82,6 +86,22 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
                 + "\nDün: " + store.yesterday() + " reels");
         limitText.setText(String.valueOf(limit));
 
+        passCard.setVisibility(count >= limit ? View.VISIBLE : View.GONE);
+        long passMs = store.passRemainingMs();
+        int passesLeft = store.passesLeft();
+        handler.removeCallbacks(passTick);
+        if (passMs > 0) {
+            passText.setText("⏱ İzin açık: " + Store.formatRemaining(passMs) + " kaldı");
+            passButton.setVisibility(View.GONE);
+            handler.postDelayed(passTick, 1000);
+        } else if (passesLeft > 0) {
+            passText.setText("Önemli bir şey mi var? Bugün " + passesLeft + " izin hakkın kaldı.");
+            passButton.setVisibility(View.VISIBLE);
+        } else {
+            passText.setText("Bugünkü izin hakların bitti. Yarın görüşürüz 🙂");
+            passButton.setVisibility(View.GONE);
+        }
+
         boolean enabled = ReelsService.isEnabled(this);
         boolean running = enabled && ReelsService.running;
         serviceOff.setVisibility(enabled ? View.GONE : View.VISIBLE);
@@ -125,6 +145,18 @@ public class MainActivity extends Activity implements SharedPreferences.OnShared
         breakdownText = Ui.text(this, "", 13, Ui.MUTED, false);
         breakdownText.setPadding(0, Ui.dp(this, 10), 0, 0);
         countCard.addView(breakdownText);
+
+        passCard = card(col);
+        passText = Ui.text(this, "", 15, Ui.TEXT, false);
+        passText.setPadding(0, 0, 0, Ui.dp(this, 10));
+        passCard.addView(passText);
+        passButton = Ui.button(this, "⏱ 2 dakika izin al", 0xFFFACC15, 0xFF1B1526);
+        passButton.setOnClickListener(v -> {
+            if (store.usePass()) {
+                Toast.makeText(this, "2 dakika iznin başladı. Uygulamana dönebilirsin.", Toast.LENGTH_LONG).show();
+            }
+        });
+        passCard.addView(passButton, fullWidth());
 
         serviceOff = card(col);
         serviceOff.addView(Ui.text(this, "⚠️ Sayaç kapalı", 18, 0xFFFACC15, true));

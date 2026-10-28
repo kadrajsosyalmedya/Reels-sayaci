@@ -8,6 +8,8 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.drawable.Icon;
 import android.content.pm.ServiceInfo;
 import android.graphics.Rect;
 import android.os.Build;
@@ -59,6 +61,29 @@ public class ReelsService extends AccessibilityService {
     private long lastBlockAt = -BLOCK_COOLDOWN_MS;
     private long lastCountAt = -LAST_REEL_GRACE_MS;
 
+    /** İzin sürerken her saniye sayacı günceller; bitince Reels'teysen kapatır. */
+    private final Runnable passTicker = new Runnable() {
+        @Override
+        public void run() {
+            long left = store.passRemainingMs();
+            if (inReels) showOverlay(false);
+            if (left > 0) {
+                handler.postDelayed(this, Math.min(1000, left));
+                return;
+            }
+            updateNotification();
+            if (inReels && currentApp != null && store.shouldBlock()) block(currentApp);
+        }
+    };
+
+    private final SharedPreferences.OnSharedPreferenceChangeListener prefsListener = (prefs, key) -> {
+        if (Store.KEY_PASS_UNTIL.equals(key) || Store.KEY_LIMIT.equals(key)) {
+            updateNotification();
+            handler.removeCallbacks(passTicker);
+            handler.post(passTicker);
+        }
+    };
+
     private final Runnable checkRunnable = () -> {
         checkPending = false;
         checkScreen();
@@ -84,6 +109,8 @@ public class ReelsService extends AccessibilityService {
         store = new Store(this);
         overlay = new Overlay(this);
         startKeepAlive();
+        store.prefs().registerOnSharedPreferenceChangeListener(prefsListener);
+        if (store.passActive()) handler.post(passTicker);
         BrainWidget.updateAll(this);
     }
 
@@ -119,14 +146,23 @@ public class ReelsService extends AccessibilityService {
         int limit = store.limit();
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class),
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
-        return new Notification.Builder(this, CHANNEL_ID)
+        Notification.Builder builder = new Notification.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("Bugün " + count + " / " + limit + " reels")
-                .setContentText(Brain.mood(Brain.health(count, limit)))
+                .setContentText(store.passActive()
+                        ? "⏱ 2 dakika izin açık"
+                        : Brain.mood(Brain.health(count, limit)))
                 .setContentIntent(open)
                 .setOngoing(true)
-                .setShowWhen(false)
-                .build();
+                .setShowWhen(false);
+        if (store.limitReached() && !store.passActive() && store.passesLeft() > 0) {
+            PendingIntent pass = PendingIntent.getBroadcast(this, 1, new Intent(this, PassReceiver.class),
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+            builder.addAction(new Notification.Action.Builder(
+                    Icon.createWithResource(this, R.drawable.ic_launcher_foreground),
+                    "⏱ 2 dk izin al (" + store.passesLeft() + " hak)", pass).build());
+        }
+        return builder.build();
     }
 
     @Override
@@ -190,7 +226,7 @@ public class ReelsService extends AccessibilityService {
     private void setInReels(App app, boolean value) {
         // Limit dolduysa reels ekranına girilemez. Limitteki son reels'i izlemek için kısa bir
         // süre tanınır; bir sonrakine kaydırınca ya da süre bitince kapanır.
-        if (value && store.limitReached()
+        if (value && store.shouldBlock()
                 && (!inReels || SystemClock.uptimeMillis() - lastCountAt > LAST_REEL_GRACE_MS)) {
             block(app);
             return;
@@ -200,10 +236,15 @@ public class ReelsService extends AccessibilityService {
             if (!value) trackers.clear();
         }
         if (value) {
-            overlay.show(store.count(), store.limit());
+            showOverlay(false);
         } else {
             overlay.hide();
         }
+    }
+
+    private void showOverlay(boolean pulse) {
+        overlay.show(store.count(), store.limit(), store.passRemainingMs());
+        if (pulse) overlay.update(store.count(), store.limit(), store.passRemainingMs(), true);
     }
 
     private void leave() {
@@ -285,7 +326,7 @@ public class ReelsService extends AccessibilityService {
         long now = SystemClock.uptimeMillis();
         boolean newReel = tracker.onScroll(now, event.getFromIndex(), event.getItemCount());
 
-        if (store.limitReached()) {
+        if (store.shouldBlock()) {
             // Uygulama yeniden açılınca akışın sırası değişebilir ve sayaç yeni reels'i kaçırabilir;
             // limit dolduktan sonra her yeni kaydırma hareketi kapatır.
             if (newReel || now - lastCountAt > NEXT_GESTURE_MS) block(app);
@@ -294,7 +335,7 @@ public class ReelsService extends AccessibilityService {
         if (!newReel) return;
         lastCountAt = now;
         int count = store.increment(app);
-        overlay.update(count, store.limit(), true);
+        showOverlay(true);
         updateNotification();
         BrainWidget.updateAll(this);
     }
@@ -331,7 +372,9 @@ public class ReelsService extends AccessibilityService {
 
         if (!app.wholeApp) {
             // Instagram/YouTube açık kalsın (mesajlar, normal videolar); sadece Reels/Shorts'tan çık.
-            Toast.makeText(this, app.title + " bugünlük kapalı 🧠 Limitin doldu.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, app.title + " bugünlük kapalı 🧠 Limitin doldu."
+                    + (store.passesLeft() > 0 ? " Önemliyse bildirimden 2 dk izin alabilirsin." : ""),
+                    Toast.LENGTH_LONG).show();
             backingOut = true;
             backOutOfReels(app, 0);
             return;
